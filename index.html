@@ -34,8 +34,8 @@
 <div class="container">
     <h2>🗳️ D'Hondt Rechner</h2>
     <div class="settings">
-        <div class="input-field"><label>Listen</label><input type="number" id="anzahlListen" value="3" min="1" oninput="updateRows()"></div>
-        <div class="input-field"><label>Sitze</label><input type="number" id="sitzeGesamt" value="5" min="1"></div>
+        <div class="input-field"><label>Listen</label><input type="number" id="anzahlListen" value="7" min="1" oninput="updateRows()"></div>
+        <div class="input-field"><label>Sitze</label><input type="number" id="sitzeGesamt" value="6" min="1"></div>
     </div>
     <div id="listen-container"></div>
     <button onclick="berechnen()">Ergebnis berechnen</button>
@@ -73,7 +73,7 @@ function berechnen() {
     const huerde = alleQuotienten[sitzeGesamt - 1] || 0;
     let vergebeneSitze = 0;
     
-    // Zähle sichere Sitze (strikt größer als Hürde)
+    // Zähle sichere Sitze
     parteien.forEach(p => { p.quotienten.forEach(q => { if (q > huerde && vergebeneSitze < sitzeGesamt) { p.sitze++; vergebeneSitze++; } }); });
 
     const anzahlHuerdeGesamt = alleQuotienten.filter(q => q === huerde && q > 0).length;
@@ -82,13 +82,12 @@ function berechnen() {
 
     let html = `<h3>📊 Ergebnis</h3><div class="scroll-container"><table><tr><th>Liste</th><th>Stimmen</th><th>Sitze</th></tr>`;
     
-    // Für die Anzeige: restliche Sitze an der Hürde "auffüllen" (nur Visualisierung)
     let tempParteien = JSON.parse(JSON.stringify(parteien));
     let tempVergeben = vergebeneSitze;
     tempParteien.forEach(p => { p.quotienten.forEach(q => { if (q === huerde && tempVergeben < sitzeGesamt && q > 0) { p.sitze++; tempVergeben++; } }); });
 
     tempParteien.forEach(p => {
-        let losInfo = (mussLosen && p.quotienten.includes(huerde)) ? " <small>(Los?)</small>" : "";
+        let losInfo = (mussLosen && p.quotienten.includes(huerde)) ? " <small style='color:orange'>(Los?)</small>" : "";
         html += `<tr><td>${p.name}${losInfo}</td><td>${p.stimmen.toLocaleString()}</td><td><strong>${p.sitze}</strong></td></tr>`;
     });
     html += `</table></div>`;
