@@ -4,51 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>D'Hondt Pro</title>
-    
-    <!-- PWA Manifest direkt eingebettet -->
-    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22DHondt%20Rechner%22,%22short_name%22:%22DHondt%22,%22start_url%22:%22index.html%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f8fafc%22,%22theme_color%22:%22%232563eb%22}">
-
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; --win: #dcfce7; --accent: #ef4444; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: env(safe-area-inset-top) 10px 10px 10px; display: flex; justify-content: center; }
-        .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 800px; box-sizing: border-box; }
-        .settings { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; background: #f1f5f9; padding: 15px; border-radius: 8px; }
-        .input-field { display: flex; flex-direction: column; flex: 1; }
-        label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
-        input { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; -webkit-appearance: none; }
-        .liste-row { display: flex; gap: 8px; margin-bottom: 10px; }
-        .index-label { min-width: 30px; display: flex; align-items: center; justify-content: center; background: #eee; border-radius: 6px; font-weight: bold; }
-        .n-in { flex: 2; } .s-in { flex: 1; }
-        button { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1.1rem; font-weight: bold; margin: 15px 0; -webkit-appearance: none; }
-        .scroll-container { width: 100%; overflow-x: auto; margin-top: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        table { width: 100%; border-collapse: collapse; min-width: 450px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
-        th { background: #f8fafc; font-size: 0.8rem; text-transform: uppercase; }
-        .winner-cell { background: var(--win); font-weight: bold; }
-        .alert-box { background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border: 1px solid var(--accent); margin: 20px 0; font-size: 0.9rem; }
-        @media (min-width: 600px) { .settings { flex-direction: row; } }
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; --win: #dcfce7; }
+        
+        /* Basis-Setup für Mobile */
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; line-height: 1.4; }
+        
+        .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width: 100%; max-width: 100%; overflow: hidden; }
+        
+        h2 { font-size: 1.2rem; text-align: center; margin-bottom: 15px; }
+
+        /* Eingabebereich kompakt */
+        .settings { background: #f1f5f9; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .input-field { display: flex; flex-direction: column; width: 100%; }
+        label { font-size: 0.85rem; font-weight: bold; margin-bottom: 4px; }
+        input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 16px; width: 100%; }
+
+        /* Listen-Eingabe untereinander auf Mobile */
+        .liste-row { display: flex; gap: 5px; margin-bottom: 8px; width: 100%; }
+        .index-label { min-width: 25px; display: flex; align-items: center; justify-content: center; background: #eee; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .n-in { flex: 1.5; min-width: 0; } /* Name */
+        .s-in { flex: 1; min-width: 0; }   /* Stimmen */
+
+        button { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1rem; font-weight: bold; margin: 10px 0; }
+
+        /* Tabellen-Optimierung */
+        .scroll-container { width: 100%; overflow-x: auto; margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; background: white; }
+        th, td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+        th { background: #f8fafc; white-space: nowrap; }
+        
+        /* Spezielle Matrix-Zelle */
+        .winner-cell { background: var(--win); font-weight: bold; box-shadow: inset 0 0 0 1px #22c55e; }
+
+        .alert-box { background: #fee2e2; color: #b91c1c; padding: 12px; border-radius: 8px; border: 1px solid #ef4444; margin: 15px 0; font-size: 0.85rem; }
+
+        @media (min-width: 480px) {
+            .settings { flex-direction: row; }
+            h2 { font-size: 1.5rem; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="text-align:center; margin-top:0;">🗳️ D'Hondt Pro WebApp</h2>
+    <h2>🗳️ D'Hondt Rechner</h2>
     
     <div class="settings">
         <div class="input-field">
-            <label>Anzahl Listen</label>
+            <label>Listen</label>
             <input type="number" id="anzahlListen" value="3" min="1" oninput="updateRows()">
         </div>
         <div class="input-field">
-            <label>Sitze gesamt</label>
+            <label>Sitze</label>
             <input type="number" id="sitzeGesamt" value="5" min="1">
         </div>
     </div>
 
     <div id="listen-container"></div>
-    <button onclick="berechnen()">Ergebnis berechnen</button>
+    <button onclick="berechnen()">Berechnen</button>
     <div id="ergebnis-bereich"></div>
 </div>
 
@@ -67,7 +83,7 @@ function updateRows() {
         row.className = 'liste-row';
         row.innerHTML = `
             <div class="index-label">${i + 1}</div>
-            <input type="text" class="n-in" value="${backup[i] ? backup[i].name : 'Liste ' + (i+1)}">
+            <input type="text" class="n-in" value="${backup[i] ? backup[i].name : 'L' + (i+1)}">
             <input type="number" class="s-in" value="${backup[i] ? backup[i].stim : ''}" placeholder="Stimmen" inputmode="numeric">
         `;
         container.appendChild(row);
@@ -93,26 +109,27 @@ function berechnen() {
     }
 
     alleQuotienten.sort((a, b) => b - a);
-    const huerde = alleQuotienten[sitzeGesamt - 1];
+    const huerde = alleQuotienten[sitzeGesamt - 1] || 0;
     let vergebeneSitze = 0;
 
     parteien.forEach(p => {
         p.quotienten.forEach(q => { if (q > huerde && vergebeneSitze < sitzeGesamt) { p.sitze++; vergebeneSitze++; } });
     });
 
-    const anzahlHuerdeGesamt = alleQuotienten.filter(q => q === huerde).length;
+    const anzahlHuerdeGesamt = alleQuotienten.filter(q => q === huerde && q > 0).length;
     let freieSitzeAnDerHuerde = sitzeGesamt - vergebeneSitze;
     let losHinweis = "";
-    if (anzahlHuerdeGesamt > freieSitzeAnDerHuerde) {
+    
+    if (huerde > 0 && anzahlHuerdeGesamt > freieSitzeAnDerHuerde) {
         let betroffene = parteien.filter(p => p.quotienten.includes(huerde)).map(p => p.name);
-        losHinweis = `<div class="alert-box"><strong>⚠️ LOSENTSCHEID (§15 Abs.2 WO)</strong><br>Gleichstand bei Höchstzahl ${huerde.toLocaleString(undefined,{minimumFractionDigits:2})}.<br>Listen: ${betroffene.join(', ')}</div>`;
+        losHinweis = `<div class="alert-box"><strong>⚠️ LOSENTSCHEID</strong><br>Gleichstand bei ${huerde.toLocaleString(undefined,{minimumFractionDigits:2})}.<br>Listen: ${betroffene.join(', ')}</div>`;
     }
 
     parteien.forEach(p => {
-        p.quotienten.forEach(q => { if (q === huerde && vergebeneSitze < sitzeGesamt) { p.sitze++; vergebeneSitze++; } });
+        p.quotienten.forEach(q => { if (q === huerde && vergebeneSitze < sitzeGesamt && q > 0) { p.sitze++; vergebeneSitze++; } });
     });
 
-    let html = `<h3>📊 Sitzverteilung</h3><div class="scroll-container"><table><tr><th>Liste</th><th>Stimmen</th><th>Sitze</th></tr>`;
+    let html = `<h3>📊 Ergebnis</h3><div class="scroll-container"><table><tr><th>Liste</th><th>Stimmen</th><th>Sitze</th></tr>`;
     parteien.forEach(p => { html += `<tr><td>${p.name}</td><td>${p.stimmen.toLocaleString()}</td><td><strong>${p.sitze}</strong></td></tr>`; });
     html += `</table></div>` + losHinweis;
 
@@ -123,14 +140,14 @@ function berechnen() {
         html += `<tr><td><strong>:${t+1}</strong></td>`;
         parteien.forEach(p => {
             const q = p.quotienten[t];
-            const isWinner = q >= huerde && (p.sitze > t);
-            html += `<td class="${isWinner ? 'winner-cell' : ''}">${q.toLocaleString(undefined,{minimumFractionDigits:2})}</td>`;
+            const isWinner = q > 0 && q >= huerde && (p.sitze > t);
+            html += `<td class="${isWinner ? 'winner-cell' : ''}">${q.toLocaleString(undefined,{minimumFractionDigits:1, maximumFractionDigits:1})}</td>`;
         });
         html += `</tr>`;
     }
     html += `</table></div>`;
+    
     document.getElementById('ergebnis-bereich').innerHTML = html;
-    document.getElementById('ergebnis-bereich').scrollIntoView({ behavior: 'smooth' });
 }
 updateRows();
 </script>
