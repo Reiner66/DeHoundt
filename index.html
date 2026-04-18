@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>D'Hondt Profi-Rechner (Mobile)</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; --win: #dcfce7; }
+        
+        /* Grundlayout */
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 800px; box-sizing: border-box; }
+        
+        /* Mobile-freundliche Eingaben */
+        .settings { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; background: #f1f5f9; padding: 15px; border-radius: 8px; }
+        .input-field { display: flex; flex-direction: column; }
+        label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; /* Verhindert Zoom auf iOS */ }
+        
+        /* Die Liste der Parteien */
+        .liste-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+        .index-label { min-width: 30px; height: 40px; display: flex; align-items: center; justify-content: center; background: #eee; border-radius: 6px; font-size: 0.8rem; font-weight: bold; }
+        .n-in { flex: 2; min-width: 0; }
+        .s-in { flex: 1; min-width: 0; }
+
+        button { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1.1rem; font-weight: bold; margin-top: 10px; -webkit-tap-highlight-color: transparent; }
+        
+        /* Tabellen Scrollbar für Mobile */
+        .scroll-container { width: 100%; overflow-x: auto; margin-top: 15px; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid #e2e8f0; }
+        table { width: 100%; border-collapse: collapse; min-width: 400px; font-size: 0.85rem; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+        th { background: #f8fafc; }
+        .winner-cell { background: var(--win); font-weight: bold; box-shadow: inset 0 0 0 1px #22c55e; }
+
+        /* Warnbox */
+        .alert-box { background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border: 1px solid #ef4444; margin: 20px 0; font-size: 0.9rem; line-height: 1.4; }
+
+        @media (min-width: 600px) {
+            .settings { flex-direction: row; }
+            .container { padding: 30px; }
+            table { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="margin-top:0; text-align:center;">🗳️ D'Hondt BetrVG</h2>
+    
+    <div class="settings">
+        <div class="input-field" style="flex:1">
+            <label>Anzahl Listen</label>
+            <input type="number" id="anzahlListen" value="3" min="1" oninput="updateRows()">
+        </div>
+        <div class="input-field" style="flex:1">
+            <label>Sitze gesamt</label>
+            <input type="number" id="sitzeGesamt" value="5" min="1">
+        </div>
+    </div>
+
+    <div id="listen-container"></div>
+
+    <button onclick="berechnen()">Berechnen</button>
+
+    <div id="ergebnis-bereich"></div>
+</div>
+
+<script>
+function updateRows() {
+    const container = document.getElementById('listen-container');
+    const anzahl = parseInt(document.getElementById('anzahlListen').value) || 0;
+    const inputs = container.querySelectorAll('.liste-row');
+    const backup = Array.from(inputs).map(row => ({ 
+        name: row.querySelector('.n-in').value, 
+        stim: row.querySelector('.s-in').value 
+    }));
+
+    container.innerHTML = '';
+    for (let i = 0; i < anzahl; i++) {
+        const row = document.createElement('div');
+        row.className = 'liste-row';
+        row.innerHTML = `
+            <div class="index-label">${i + 1}</div>
+            <input type="text" class="n-in" value="${backup[i] ? backup[i].name : 'Liste ' + (i+1)}">
+            <input type="number" class="s-in" value="${backup[i] ? backup[i].stim : ''}" placeholder="Stimmen" inputmode="numeric">
+        `;
+        container.appendChild(row);
+    }
+}
+
+function berechnen() {
+    const sitzeGesamt = parseInt(document.getElementById('sitzeGesamt').value);
+    const nInputs = document.querySelectorAll('.n-in');
+    const sInputs = document.querySelectorAll('.s-in');
+    let parteien = [];
+
+    for (let i = 0; i < nInputs.length; i++) {
+        const s = parseInt(sInputs[i].value) || 0;
+        parteien.push({ name: nInputs[i].value, stimmen: s, sitze: 0, quotienten: [] });
+    }
+
+    let alleQuotienten = [];
+    parteien.forEach(p => {
+        for (let t = 1; t <= sitzeGesamt; t++) {
+            let q = p.stimmen / t;
+            p.quotienten.push(q);
+            alleQuotienten.push(q);
+        }
+    });
+
+    alleQuotienten.sort((a, b) => b - a);
+    const huerde = alleQuotienten[sitzeGesamt - 1];
+
+    let vergebeneSitze = 0;
+    parteien.forEach(p => {
+        p.quotienten.forEach(q => {
+            if (q > huerde && vergebeneSitze < sitzeGesamt) {
+                p.sitze++;
+                vergebeneSitze++;
+            }
+        });
+    });
+
+    const anzahlHuerdeGesamt = alleQuotienten.filter(q => q === huerde).length;
+    let freieSitzeAnDerHuerde = sitzeGesamt - vergebeneSitze;
+    let betroffeneListen = parteien.filter(p => p.quotienten.includes(huerde)).map(p => p.name);
+    
+    let losHinweis = "";
+    if (anzahlHuerdeGesamt > freieSitzeAnDerHuerde) {
+        losHinweis = `
+            <div class="alert-box">
+                <strong>⚠️ LOSENTSCHEID ERFORDERLICH</strong><br>
+                Gleichstand bei Höchstzahl: <b>${huerde.toLocaleString(undefined, {minimumFractionDigits:2})}</b>.<br>
+                Betroffen: <i>${betroffeneListen.join(', ')}</i>.
+            </div>`;
+    }
+
+    // Für die Tabelle füllen wir die restlichen Sitze nach Reihenfolge auf
+    let tempVergeben = vergebeneSitze;
+    parteien.forEach(p => {
+        p.quotienten.forEach(q => {
+            if (q === huerde && tempVergeben < sitzeGesamt) {
+                p.sitze++;
+                tempVergeben++;
+            }
+        });
+    });
+
+    let html = `<h3>📊 Ergebnis</h3><div class="scroll-container"><table><tr><th>Liste</th><th>Stimmen</th><th>Sitze</th></tr>`;
+    parteien.forEach(p => {
+        html += `<tr><td>${p.name}</td><td>${p.stimmen.toLocaleString()}</td><td><strong>${p.sitze}</strong></td></tr>`;
+    });
+    html += `</table></div>`;
+
+    html += losHinweis;
+
+    html += `<h3>🔢 Höchstzahl-Matrix</h3><div class="scroll-container"><table><tr><th>Teiler</th>`;
+    parteien.forEach(p => html += `<th>${p.name}</th>`);
+    html += `</tr>`;
+
+    for (let t = 0; t < Math.min(sitzeGesamt, 20); t++) {
+        html += `<tr><td><strong>:${t + 1}</strong></td>`;
+        parteien.forEach(p => {
+            const q = p.quotienten[t];
+            const isWinner = q >= huerde && (p.sitze > t); 
+            html += `<td class="${isWinner ? 'winner-cell' : ''}">${q.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>`;
+        });
+        html += `</tr>`;
+    }
+    html += `</table></div>`;
+
+    document.getElementById('ergebnis-bereich').innerHTML = html;
+    // Scrollt automatisch zum Ergebnis
+    document.getElementById('ergebnis-bereich').scrollIntoView({ behavior: 'smooth' });
+}
+
+updateRows();
+</script>
+
+</body>
+</html>
